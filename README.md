@@ -4,14 +4,13 @@
 1. [Overview](#overview)
 2. [Features](#features)
 3. [Requirements](#requirements)
-4. [Usage](#usage)
-   - [Clone the repository](#clone-the-repository)
-   - [Run the application](#run-the-application)
+4. [Installation](installation)
+5. [Usage](#usage)
    - [Use the application](#use-the-application)
-5. [Disclaimer](#disclaimer)
-6. [Contributing](#contributing)
-7. [License](#license)
-8. [Acknowledgments](#acknowledgments)
+6. [Disclaimer](#disclaimer)
+7. [Contributing](#contributing)
+8. [License](#license)
+9. [Acknowledgments](#acknowledgments)
 
 
 ## Overview
@@ -35,25 +34,43 @@ pip install PyQt5 yt-dlp
 ```
 To install FFmpeg, you can follow the instructions provided on the official [FFmpeg website](https://ffmpeg.org/download.html).
 
+## Installation
+## Download through Git:
+1. **Open a Terminal or Command Prompt:**
+   - On Windows, you can use the Command Prompt or PowerShell.
+   - On macOS or Linux, use the Terminal.
+
+2. **Navigate to the Directory Where You Want to Clone the Repository:**
+   ```bash
+   cd path/to/your/directory
+   ```
+3. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/UltraDeveloper7/Youtube-Downloader.git
+   ```
+4. **Navigate into the Cloned Directory:**
+   ```bash
+   cd Youtube-Downloader
+   ```
+Now, you have successfully cloned the repository to your local machine. You can proceed with the next steps, such as installing dependencies and running the application.
+
+## Download through ZIP file:
+1. Download the project as a zip file. You can do this by clicking on the "Code" button on the [GitHub repository page](https://github.com/UltraDeveloper7/Youtube-Downloader) and selecting "Download ZIP."
+2. Extract the downloaded zip file to a location of your choice.
+3. Open your terminal or command prompt and navigate to the extracted directory.
+   ```bash
+   cd path/to/extracted/folder
+   ```
+4. Run inside that folder te following command:
+   ```bash
+   python YoutubeDownloader.py
+   ```
 ## Usage
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/youtube-downloader-app.git
-cd youtube-downloader-app
-```
-
-2. Run the application:
-
-```bash
-python main.py
-```
-
-3. Use the application:
-   - Paste the YouTube video URL into the input field.
-   - Select where do you want to be installed.
-   - Select the desired video and audio formats.
-   - Click the "Download" button to start the download process.
+- Use the application:
+   1. Paste the YouTube video URL into the input field.
+   2. Select where do you want to be installed.
+   3. Select the desired video and audio formats.
+   4. Click the "Download" button to start the download process.
 
 ## Disclaimer
 This application is for educational and personal use only. Respect the terms of service of the platforms you are downloading content from.
