@@ -1,7 +1,6 @@
 # YouTube Downloader App
 
 # Table of Contents
-
 1. [Overview](#overview)
 2. [Features](#features)
 3. [Requirements](#requirements)
@@ -31,11 +30,9 @@ Make sure you have the following dependencies installed before running the appli
 - FFmpeg
 
 You can install the dependencies using the following command:
-
 ```bash
 pip install PyQt5 yt-dlp
 ```
-
 To install FFmpeg, you can follow the instructions provided on the official [FFmpeg website](https://ffmpeg.org/download.html).
 
 ## Usage
@@ -53,25 +50,21 @@ python main.py
 ```
 
 3. Use the application:
-
    - Paste the YouTube video URL into the input field.
+   - Select where do you want to be installed.
    - Select the desired video and audio formats.
    - Click the "Download" button to start the download process.
 
 ## Disclaimer
-
 This application is for educational and personal use only. Respect the terms of service of the platforms you are downloading content from.
 
 ## Contributing
-
-If you find any issues or have suggestions for improvement, feel free to open an issue or submit a pull request.
+If you encounter issues or have suggestions for improvement, feel free to open an issue or submit a pull request on the [GitHub repository page](https://github.com/UltraDeveloper7/Youtube-Downloader).
 
 ## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE). You can find the full text of the license [here](https://opensource.org/licenses/MIT).
 
 ## Acknowledgments
-
 - [PyQt](https://riverbankcomputing.com/software/pyqt/)
 - [yt_dlp](https://github.com/yt-dlp/yt-dlp)
 - [FFmpeg](https://ffmpeg.org/)
