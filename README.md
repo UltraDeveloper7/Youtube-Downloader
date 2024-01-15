@@ -5,6 +5,8 @@
 2. [Features](#features)
 3. [Requirements](#requirements)
 4. [Installation](installation)
+   - [Download through Git](#download-through-git)
+   - [Download through ZIP file](#download-through-zip-file)
 5. [Usage](#usage)
    - [Use the application](#use-the-application)
 6. [Disclaimer](#disclaimer)
