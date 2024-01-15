@@ -1,5 +1,20 @@
 # YouTube Downloader App
 
+# Table of Contents
+
+1. [Overview](#overview)
+2. [Features](#features)
+3. [Requirements](#requirements)
+4. [Usage](#usage)
+   - [Clone the repository](#clone-the-repository)
+   - [Run the application](#run-the-application)
+   - [Use the application](#use-the-application)
+5. [Disclaimer](#disclaimer)
+6. [Contributing](#contributing)
+7. [License](#license)
+8. [Acknowledgments](#acknowledgments)
+
+
 ## Overview
 This is a simple YouTube downloader application built using PyQt5, Python, yt_dlp, and FFmpeg. The app provides an easy-to-use interface for users to download videos from YouTube.
 
