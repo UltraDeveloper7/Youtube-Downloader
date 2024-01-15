@@ -154,12 +154,11 @@ class MainWindow(QMainWindow):
 
         downloader = Download(url, save_path, quality, playlist)
         if video_format:
-            downloader.mp4_download()
+            song_name = downloader.mp4_download()
         else:
-            downloader.mp3_download()
+            song_name = downloader.mp3_download()
 
-        self.input_url.setText("")
-        self.label_done.setText("Download Done!")
+        self.label_done.setText(f"Download Done: {song_name}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
