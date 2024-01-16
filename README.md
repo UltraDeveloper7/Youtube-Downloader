@@ -7,6 +7,7 @@
 4. [Installation](installation)
    - [Download through Git](#download-through-git)
    - [Download through ZIP file](#download-through-zip-file)
+   - [Download the Executable File](#download-the-executable-file) 
 5. [Usage](#usage)
    - [Use the application](#use-the-application)
 6. [Disclaimer](#disclaimer)
@@ -67,6 +68,22 @@ Now, you have successfully cloned the repository to your local machine. You can 
    ```bash
    python YoutubeDownloader.py
    ```
+   
+## Download the Executable File
+If you do not have Python already installed on your PC, you can download the executable file for this application by following these steps:
+
+1. **Visit the Releases Page:**
+   - Navigate to the [Releases](https://github.com/yourusername/yourrepository/releases) page of this repository.
+
+2. **Download the Executable:**
+   - Look for the latest release or the version you want to use.
+   - Find the executable file (usually with a `.exe` extension) in the assets or download section.
+
+3. **Run the Executable:**
+   - Once you have the executable file and, if necessary, Python installed, you can run the application by double-clicking on the executable file.
+
+Note: Make sure to check the system requirements and any additional instructions provided in the release notes or documentation.
+
 ## Usage
 - Use the application:
    1. Paste the YouTube video URL into the input field.
