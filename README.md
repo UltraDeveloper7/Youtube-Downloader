@@ -80,7 +80,7 @@ If you do not have Python already installed on your PC, you can download the exe
    - Find the executable file (usually with a `.exe` extension) in the assets or download section.
 
 3. **Run the Executable:**
-   - Once you have the executable file and, if necessary, Python installed, you can run the application by double-clicking on the executable file.
+   - Once you have the executable file and you can run the application by double-clicking on the executable file.
 
 Note: Make sure to check the system requirements and any additional instructions provided in the release notes or documentation.
 
