@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
 
         self.label_done = QtWidgets.QLabel(self)
         self.label_done.setObjectName("label_done")
-        self.label_done.setGeometry(QtCore.QRect(10, 240, 590, 31))
+        self.label_done.setGeometry(QtCore.QRect(4, 240, 590, 40))
         self.font.setPointSize(14)
         self.font.setBold(False)
         self.font.setWeight(50)
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         else:
             song_name = downloader.mp3_download()
 
-        self.label_done.setText(f"Download Done: {song_name}")
+        self.label_done.setText(f"{song_name} \n Download Done!")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
