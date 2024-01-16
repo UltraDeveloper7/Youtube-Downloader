@@ -73,7 +73,7 @@ Now, you have successfully cloned the repository to your local machine. You can 
 If you do not have Python already installed on your PC, you can download the executable file for this application by following these steps:
 
 1. **Visit the Releases Page:**
-   - Navigate to the [Releases](https://github.com/yourusername/yourrepository/releases) page of this repository.
+   - Navigate to the [Releases](https://github.com/UltraDeveloper7/Youtube-Downloader/releases) page of this repository.
 
 2. **Download the Executable:**
    - Look for the latest release or the version you want to use.
