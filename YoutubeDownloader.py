@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
         self.label_done = QtWidgets.QLabel(self)
         self.label_done.setObjectName("label_done")
         self.label_done.setGeometry(QtCore.QRect(4, 240, 590, 40))
-        self.font.setPointSize(14)
+        self.font.setPointSize(10)
         self.font.setBold(False)
         self.font.setWeight(50)
         self.label_done.setFont(self.font)
