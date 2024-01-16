@@ -28,7 +28,12 @@ class Download(object):
         }]
         opts["extractaudio"] = True
         download_object = youtube_dl.YoutubeDL(opts)
-        download_object.download([self.url])
+        #download_object.download([self.url])
+        info = download_object.extract_info(self.url, download=True)
+        song_name = info.get('title', None)
+        # Split the song name on the "|" character and keep the first part
+        song_name = song_name.split("|")[0].strip()
+        return song_name
 
     def mp4_download(self):
         opts = self.common_opts
@@ -37,4 +42,9 @@ class Download(object):
             "preferedformat"  : "mp4",
         }]
         download_object = youtube_dl.YoutubeDL(opts)
-        download_object.download([self.url])
+        #download_object.download([self.url])
+        info = download_object.extract_info(self.url, download=True)
+        song_name = info.get('title', None)
+        # Split the song name on the "|" character and keep the first part
+        song_name = song_name.split("|")[0].strip()
+        return song_name
