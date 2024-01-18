@@ -11,6 +11,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setGeometry(200, 200, 592, 316)
+        self.setFixedSize(592, 316)
         self.setWindowTitle("Youtube Downloader")
         self.font = QtGui.QFont()
         self.font.setFamily("Leelawadee UI")
