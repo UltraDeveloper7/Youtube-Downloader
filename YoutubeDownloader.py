@@ -153,7 +153,7 @@ class MainWindow(QMainWindow):
         playlist = not self.radio_single.isChecked()
         video_format = self.check_video.isChecked()
 
-        downloader = Download(url, save_path, quality, playlist)
+        downloader = Download(url, save_path, quality, playlist, video_format)
         if video_format:
             song_name = downloader.mp4_download()
         else:
