@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 import yt_dlp as youtube_dl
 
 class Download(object):
-    def __init__(self, url, save_path, quality, playlist=False, download_type='audio'):
+    def __init__(self, url, save_path, quality, playlist=False, download_type=False):
         self.url = url
         self.save_path = save_path
         self.qualities = {"Best": "1411", "Semi": "320", "Worst": "128"}
@@ -15,13 +15,13 @@ class Download(object):
         return {
             "verbose": False,
             "fixup"  : "detect_or_warn",
-            "format" : "bestaudio/best" if self.download_type == 'audio' else "bestvideo+bestaudio/best",
+            "format" : "bestaudio/best" if self.download_type == False else "bestvideo+bestaudio/best",
             "outtmpl"     : self.save_path + "/%(title)s.%(ext)s",
             "noplaylist"  : self.playlist
         }
 
     def mp3_download(self):
-        self.download_type = 'audio'
+        self.download_type = False
         opts = self.common_opts
         opts["postprocessors"] = [{
             "key": "FFmpegExtractAudio",
@@ -38,7 +38,7 @@ class Download(object):
         return song_name
 
     def mp4_download(self):
-        self.download_type = 'video'
+        self.download_type = True
         opts = self.common_opts
         opts["postprocessors"] = [{
             "key": "FFmpegVideoConvertor",
