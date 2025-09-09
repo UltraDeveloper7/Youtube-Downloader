@@ -2,168 +2,376 @@ from __future__ import unicode_literals
 import os
 import sys
 import threading
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PyQt5.QtWidgets import QApplication, QFileDialog, QWidget
+from PyQt5.QtCore import QStandardPaths, QEventLoop, pyqtSignal
+from PyQt5.QtGui import QPalette, QColor
+
 from DownloadMethods import Download
 
 
-class MainWindow(QMainWindow):
+def res_path(rel: str) -> str:
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, rel)
+
+def _system_theme():
+    try:
+        if sys.platform.startswith("win"):
+            import winreg
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+            ) as k:
+                val, _ = winreg.QueryValueEx(k, "AppsUseLightTheme")
+                return "light" if int(val) == 1 else "dark"
+    except Exception:
+        pass
+
+    pal = QApplication.instance().palette() if QApplication.instance() else QPalette()
+    win = pal.color(QPalette.Window)
+    lum = 0.2126 * win.redF() + 0.7152 * win.greenF() + 0.0722 * win.blueF()
+    return "dark" if lum < 0.5 else "light"
+
+
+class MainWindow(QtWidgets.QMainWindow):
+    # >>> Thread-safe channels
+    sig_progress = pyqtSignal(dict)           # payload from downloader
+    sig_title    = pyqtSignal(str, object, object)  # title, idx, total
+    sig_finish   = pyqtSignal(bool, str)      # success, message
+
     def __init__(self):
-        super(MainWindow, self).__init__()
-        self.setGeometry(200, 200, 592, 316)
-        self.setFixedSize(592, 316)
+        super().__init__()
+        uic.loadUi(res_path("Graphics.ui"), self)
+
+        # Bind widgets
+        self.label_top       = self.findChild(QtWidgets.QLabel,      "label")
+        self.button_download = self.findChild(QtWidgets.QPushButton, "pushButton_3")
+        self.check_video     = self.findChild(QtWidgets.QCheckBox,   "checkBox")
+        self.input_url       = self.findChild(QtWidgets.QLineEdit,   "lineEdit_3")
+        self.button_set      = self.findChild(QtWidgets.QPushButton, "pushButton_4")
+        self.input_path      = self.findChild(QtWidgets.QLineEdit,   "lineEdit_4")
+        self.radio_single    = self.findChild(QtWidgets.QRadioButton,"radioButton")
+        self.radio_playlist  = self.findChild(QtWidgets.QRadioButton,"radioButton_2")
+        self.themeButton     = self.findChild(QtWidgets.QPushButton, "themeButton")
+        self.combo_quality   = self.findChild(QtWidgets.QComboBox,   "comboBox")
+        self.label_done      = self.findChild(QtWidgets.QLabel,      "label_2")
+        self.label_progress  = self.findChild(QtWidgets.QLabel,      "label_progress")
+        self.progress_bar    = self.findChild(QtWidgets.QProgressBar,"progressBar")
+        self.central         = self.findChild(QtWidgets.QWidget,     "centralwidget")
+
+        # Window props
         self.setWindowTitle("Youtube Downloader")
-        self.font = QtGui.QFont()
-        self.font.setFamily("Leelawadee UI")
-        self.std_download_path = str(os.path.join(os.path.expanduser("~"), "Downloads"))
-        self.initUI()
-        self.dark_mode = False
+        self.setFixedSize(592, 360) 
 
+        # Be sure both labels can wrap/show fully
+        self.label_done.setWordWrap(True)
+        self.label_progress.setWordWrap(True)
 
-    def initUI(self):
-        self.label_top = QtWidgets.QLabel(self)
-        self.label_top.setObjectName("label_top")
-        self.label_top.setGeometry(QtCore.QRect(130, 10, 331, 41))
-        self.font.setPointSize(22)
-        self.font.setBold(True)
-        self.font.setWeight(75)
-        self.label_top.setFont(self.font)
-        self.label_top.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_top.setText("Youtube Downloader")
+        # Ensure stacking order: progress text sits above done label during downloads
+        self.label_done.lower()
+        self.label_progress.raise_()
+        self.progress_bar.raise_()
+        self.themeButton.raise_()
 
-        self.button_download = QtWidgets.QPushButton(self)
-        self.button_download.setObjectName("button_download")
-        self.button_download.setGeometry(QtCore.QRect(240, 170, 111, 51))
-        self.font.setPointSize(14)
-        self.font.setBold(True)
-        self.font.setWeight(75)
-        self.button_download.setFont(self.font)
-        self.button_download.setText("Download")
-        self.button_download.clicked.connect(self.download_button)
-
-        self.check_video = QtWidgets.QCheckBox(self)
-        self.check_video.setObjectName("check_video")
-        self.check_video.setGeometry(QtCore.QRect(390, 190, 151, 21))
-        self.font.setPointSize(12)
-        self.font.setBold(True)
-        self.font.setWeight(75)
-        self.check_video.setFont(self.font)
-        self.check_video.setText("Download Video")
-
-        self.input_url = QtWidgets.QLineEdit(self)
-        self.input_url.setObjectName("input_url")
-        self.input_url.setGeometry(QtCore.QRect(20, 60, 551, 41))
-        self.font.setPointSize(10)
-        self.input_url.setFont(self.font)
-        self.input_url.setAlignment(QtCore.Qt.AlignCenter)
-        self.input_url.setText("")
+        # Initial state
         self.input_url.setPlaceholderText("Enter URL Here...")
-
-        self.button_set = QtWidgets.QPushButton(self)
-        self.button_set.setObjectName("button_set")
-        self.button_set.setGeometry(QtCore.QRect(500, 110, 71, 41))
-        self.button_set.setFont(self.font)
-        self.button_set.setText("Set")
-        self.button_set.clicked.connect(self.set_button)
-
-        self.input_path = QtWidgets.QLineEdit(self)
-        self.input_path.setObjectName("input_path")
-        self.input_path.setGeometry(QtCore.QRect(20, 110, 471, 41))
-        self.input_path.setFont(self.font)
-        self.input_path.setAlignment(QtCore.Qt.AlignCenter)
-        self.input_path.setText(self.std_download_path)
-
-        self.radio_single = QtWidgets.QRadioButton(self)
-        self.radio_single.setObjectName("radio_single")
-        self.radio_single.setGeometry(QtCore.QRect(390, 160, 81, 21))
-        self.radio_single.setFont(self.font)
-        self.radio_single.setText("Single")
+        self.input_url.setText("")
+        self.label_done.setText("")
         self.radio_single.setChecked(True)
 
-        self.radio_playlist = QtWidgets.QRadioButton(self)
-        self.radio_playlist.setObjectName("radio_playlist")
-        self.radio_playlist.setGeometry(QtCore.QRect(470, 160, 81, 21))
-        self.radio_playlist.setFont(self.font)
-        self.radio_playlist.setText("Playlist")
+        # THEME
+        start_theme = _system_theme()
+        for w in (self, self.central, self.statusBar(), self.menuBar()):
+            if w:
+                w.setProperty("theme", start_theme)
+        self._apply_placeholder_palette(start_theme)
+        self._repolish_theme_all()
+        print(f"[APP] Start theme: {start_theme}", flush=True)
 
-        self.label_done = QtWidgets.QLabel(self)
-        self.label_done.setObjectName("label_done")
-        self.label_done.setGeometry(QtCore.QRect(4, 240, 590, 40))
-        self.font.setPointSize(10)
-        self.font.setBold(False)
-        self.font.setWeight(50)
-        self.label_done.setFont(self.font)
-        self.label_done.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_done.setText("")
+        # Downloads folder
+        downloads = QStandardPaths.writableLocation(QStandardPaths.DownloadLocation) \
+                    or os.path.join(os.path.expanduser("~"), "Downloads")
+        self.input_path.setText(downloads)
 
-        self.combo_quality = QtWidgets.QComboBox(self)
-        self.combo_quality.addItem("")
-        self.combo_quality.addItem("")
-        self.combo_quality.addItem("")
-        self.combo_quality.setObjectName("combo_quality")
-        self.combo_quality.setGeometry(QtCore.QRect(90, 190, 69, 22))
-        self.font.setPointSize(10)
-        self.font.setBold(True)
-        self.font.setWeight(65)
-        self.combo_quality.setFont(self.font)
-        self.combo_quality.setItemText(0, "Best")
-        self.combo_quality.setItemText(1, "Semi")
-        self.combo_quality.setItemText(2, "Worst")
+        # Progress row hidden initially
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setFormat("%p%")
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.hide()
+        self.label_progress.hide()
 
-        self.label_quality = QtWidgets.QLabel(self)
-        self.label_quality.setObjectName("label_quality")
-        self.label_quality.setGeometry(QtCore.QRect(50, 160, 151, 21))
-        self.label_quality.setFont(self.font)
-        self.label_quality.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_quality.setText("Download Quality:")
-        
-        self.themeButton = QtWidgets.QPushButton(self)
-        self.themeButton.setObjectName("themeButton")
-        self.themeButton.setGeometry(QtCore.QRect(450, 250, 120, 41))
-        self.themeButton.setFont(self.font)
-        self.themeButton.setText("Toggle Theme")
-        self.themeButton.clicked.connect(self.toggle_theme)       
-        
+        # Hand cursor on buttons
+        pointing = QtGui.QCursor(QtCore.Qt.PointingHandCursor)
+        for btn in (self.button_download, self.button_set, self.themeButton):
+            btn.setCursor(pointing)
+
+        # Signals/slots (thread-safe)
+        self.sig_progress.connect(self._on_progress_gui)
+        self.sig_title.connect(self._show_initial_title)
+        self.sig_finish.connect(self._on_download_finished_gui)
+
+        # Buttons
+        self.button_download.clicked.connect(self.download_button)
+        self.button_set.clicked.connect(self.set_button)
+        self.themeButton.clicked.connect(self.toggle_theme)
+
+        # State
+        self.current_title = None
+        self._saw_progress = False
+
+        # >>> Place bottom widgets now and keep them placed on resize
+        self._place_bottom_controls()
+
+    # ---------- bottom controls placer ----------
+    def _place_bottom_controls(self):
+        """Anchor progress labels, bar and the Toggle Theme button."""
+        cw = self.central or self.centralWidget()
+        if not cw:
+            return
+
+        cw_w, cw_h = cw.width(), cw.height()
+
+        # Layout constants
+        margin_left       = 12
+        margin_right      = 16
+        bottom_margin     = 16
+        gap_label_to_bar  = 6
+        gap_bar_to_btn    = 8
+        labels_height     = 44   # 2 lines at ~14pt without clipping
+
+        # Lowest point of the middle row -> labels/bar never go above this
+        lower_row_bottom = max(
+            self.combo_quality.geometry().bottom(),
+            self.button_download.geometry().bottom(),
+            self.check_video.geometry().bottom(),
+            self.radio_single.geometry().bottom(),
+            self.radio_playlist.geometry().bottom(),
+        )
+        safe_top = lower_row_bottom + 12
+
+        # --- Toggle Theme (bottom-right, with a small right margin)
+        btn = self.themeButton
+        btn_w = max(150, btn.sizeHint().width())
+        btn_h = max(30,  btn.sizeHint().height())
+        btn_x = max(0, cw_w - btn_w - margin_right)
+        btn_y = max(0, cw_h - btn_h - bottom_margin)
+        btn.setGeometry(btn_x, btn_y, btn_w, btn_h)
+
+        # --- Progress bar (short & centered), always below the labels and above the button
+        pb = self.progress_bar
+        pb_h = max(14, pb.sizeHint().height())
+        pb_w = 240
+        # place above the button, but never so high that it would push labels into the form
+        pb_y = min(btn_y - gap_bar_to_btn - pb_h,
+                cw_h - bottom_margin - btn_h - gap_bar_to_btn - pb_h)
+        pb_y = max(safe_top + labels_height + gap_label_to_bar, pb_y)
+        pb_x = max(0, (cw_w - pb_w) // 2)
+        pb.setGeometry(pb_x, pb_y, pb_w, pb_h)
+
+        # --- Progress/Done labels directly above the bar (two lines wide)
+        lab_y = max(safe_top, pb_y - labels_height - gap_label_to_bar)
+        lab_x = margin_left
+        lab_w = cw_w - (margin_left + margin_right)
+        self.label_progress.setGeometry(lab_x, lab_y, lab_w, labels_height)
+        self.label_done.setGeometry(lab_x, lab_y, lab_w, labels_height)
+
+        # z-order so progress text is on top during downloads
+        self.label_done.lower()
+        self.label_progress.raise_()
+        self.progress_bar.raise_()
+        self.themeButton.raise_()
+
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        # place again after the window has its new size
+        QtCore.QTimer.singleShot(0, self._place_bottom_controls)
+
+    # ---------- Progress text helper ----------
+    def _set_progress_text(self, text: str):
+        # show full text in tooltip + status bar
+        self.label_progress.setToolTip(text)
+        if self.statusBar():
+            self.statusBar().showMessage(text)
+        # the label itself wraps to two lines (wordWrap enabled in .ui)
+        self.label_progress.setText(text)
+
+    # ---------- Theme helpers ----------
+    def _apply_placeholder_palette(self, theme: str):
+        placeholder = QColor("#888888") if theme == "light" else QColor("#bdbdbd")
+        for le in (self.input_url, self.input_path):
+            pal = le.palette()
+            pal.setColor(QPalette.PlaceholderText, placeholder)
+            le.setPalette(pal)
+
+    def _repolish_theme_all(self):
+        widgets = [self, self.central] + self.findChildren(QWidget)
+        for w in widgets:
+            try:
+                s = w.style()
+                s.unpolish(w); s.polish(w); w.update()
+            except Exception:
+                pass
+        QApplication.processEvents(QEventLoop.AllEvents, 5)
+
     def toggle_theme(self):
-        if self.dark_mode:
-            self.setStyleSheet("")  # Reset to light theme
-        else:
-            self.setStyleSheet("""
-                QWidget {
-                    background-color: #2b2b2b;
-                    color: #ffffff;
-                }
-            """)  # Set to dark theme
+        current = self.property("theme") or "light"
+        new = "dark" if current == "light" else "light"
+        for w in (self, self.central, self.statusBar(), self.menuBar()):
+            if w:
+                w.setProperty("theme", new)
+        self._apply_placeholder_palette(new)
+        self._repolish_theme_all()
 
-        self.dark_mode = not self.dark_mode
-
+    # ---------- UI actions ----------
     def set_button(self):
-        file_name = QFileDialog.getExistingDirectory()
-        if file_name:
-            self.input_path.setText(file_name)
+        folder = QFileDialog.getExistingDirectory(self, "Choose download folder", self.input_path.text())
+        if folder:
+            self.input_path.setText(folder)
 
     def download_button(self):
-        url = self.input_url.text()
-        save_path = self.input_path.text()
-        quality = self.combo_quality.currentText()
-        download = threading.Thread(target=self.download_thread, args=(url, save_path, quality), daemon=True)
-        download.start()
+        url = self.input_url.text().strip()
+        save_path = self.input_path.text().strip()
 
-    def download_thread(self, url, save_path, quality):
-        playlist = not self.radio_single.isChecked()
+        if not (url.startswith("http://") or url.startswith("https://")):
+            QtWidgets.QMessageBox.warning(self, "Invalid URL", "Please paste a valid video/playlist URL.")
+            return
+        if not os.path.isdir(save_path):
+            QtWidgets.QMessageBox.warning(self, "Invalid Folder", "Please choose an existing download folder.")
+            return
+
+        # Reset + show progress UI
+        self.label_done.setText("")
+        self.current_title = None
+        self._saw_progress = False
+        self._set_progress_text("Preparing…")
+        self.label_progress.show()
+        self.progress_bar.setValue(0)
+        self.progress_bar.show()
+
+        # Disable + busy cursor
+        self.button_download.setEnabled(False)
+        QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.BusyCursor))
+
+        quality = self.combo_quality.currentText()
+        playlist = self.radio_playlist.isChecked()
         video_format = self.check_video.isChecked()
 
-        downloader = Download(url, save_path, quality, playlist, video_format)
-        if video_format:
-            song_name = downloader.mp4_download()
-        else:
-            song_name = downloader.mp3_download()
+        threading.Thread(
+            target=self.download_thread,
+            args=(url, save_path, quality, playlist, video_format),
+            daemon=True,
+        ).start()
 
-        self.label_done.setText(f"{song_name} \n Download Done!")
+    # ---------- Title helper (GUI thread) ----------
+    @QtCore.pyqtSlot(str, object, object)
+    def _show_initial_title(self, title, idx=None, total=None):
+        self.current_title = (title or self.current_title or "").strip()
+        prefix = f"Downloading {idx}/{total}" if (idx and total) else "Downloading"
+        shown = self.current_title or "..."
+        self._set_progress_text(f"{prefix} — {shown} (0%)")
+
+    # ---------- Thread body ----------
+    def download_thread(self, url, save_path, quality, playlist, video_format):
+        try:
+            # Early metadata -> show title quickly
+            try:
+                import yt_dlp as ydl
+                probe = ydl.YoutubeDL({
+                    "quiet": True,
+                    "noplaylist": not playlist,
+                    "extract_flat": "discard_in_playlist",
+                    "skip_download": True
+                }).extract_info(url, download=False)
+                title, idx, total = None, None, None
+                if probe.get("entries"):
+                    entries = [e for e in (probe.get("entries") or []) if e]
+                    if entries:
+                        first = entries[0]
+                        title = first.get("title") or first.get("fulltitle")
+                        idx, total = 1, len(entries)
+                else:
+                    title = probe.get("title") or probe.get("fulltitle")
+                if title:
+                    self.sig_title.emit(title, idx, total)
+            except Exception as e:
+                print(f"[APP] Title probe failed: {e}", flush=True)
+
+            # Download with thread-safe emitter
+            def thread_safe_emit(payload: dict):
+                self.sig_progress.emit(payload)
+
+            downloader = Download(
+                url, save_path, quality, playlist, video_format,
+                progress_cb=thread_safe_emit
+            )
+            name = downloader.mp4_download() if video_format else downloader.mp3_download()
+            self.sig_finish.emit(True, name)
+
+        except Exception as e:
+            self.sig_finish.emit(False, str(e))
+        finally:
+            QtCore.QTimer.singleShot(0, QtWidgets.QApplication.restoreOverrideCursor)
+
+    # ---------- Progress + finish (GUI thread) ----------
+    @QtCore.pyqtSlot(dict)
+    def _on_progress_gui(self, payload: dict):
+        self._saw_progress = True
+
+        idx = payload.get("idx")
+        total = payload.get("total")
+        title = (payload.get("title") or "").strip()
+        if title:
+            self.current_title = title
+
+        file_p = payload.get("file_percent")
+        overall = payload.get("overall_percent")
+
+        prefix = f"Downloading {idx}/{total}" if (idx and total) else "Downloading"
+        shown_title = self.current_title or title or ""
+        text = prefix + (f" — {shown_title}" if shown_title else "")
+        if file_p is not None:
+            text += f" ({file_p}%)"
+        self._set_progress_text(text)
+
+        self.progress_bar.setValue(int(overall if overall is not None else (file_p or 0)))
+
+        # force paint on Windows (helps when stdout is spammy)
+        self.progress_bar.repaint()
+        QApplication.processEvents(QEventLoop.AllEvents, 5)
+
+    @QtCore.pyqtSlot(bool, str)
+    def _on_download_finished_gui(self, success: bool, message: str):
+        QApplication.restoreOverrideCursor()
+        self.button_download.setEnabled(True)
+
+        if success:
+            if not self._saw_progress:
+                if not self.current_title and message:
+                    self.current_title = message
+                title = self.current_title or message or ""
+                self._set_progress_text(f"Downloading — {title} (100%)")
+                self.progress_bar.setValue(100)
+
+            self.label_done.setText(f"{message}\nDownload Done!")
+            self.label_done.show()
+            self.label_progress.hide()
+            self.progress_bar.hide()
+            if self.statusBar():
+                self.statusBar().clearMessage()
+        else:
+            self.label_done.setText(f"Error: {message}")
+            self.label_done.show()
+            self.label_progress.hide()
+            self.progress_bar.hide()
+            if self.statusBar():
+                self.statusBar().clearMessage()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
+    window.setWindowIcon(QtGui.QIcon(res_path("YouTube.ico")))
     window.show()
-    window.setWindowIcon(QtGui.QIcon("YouTube.ico"))
     sys.exit(app.exec_())
