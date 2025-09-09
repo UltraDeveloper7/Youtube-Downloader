@@ -31,6 +31,7 @@ class Download(object):
         self.download_type = download_type  # False => audio, True => video
         self.progress_cb = progress_cb
         self._total_items = None
+        self._current_index = 0 
 
     # ---------- emit to UI ----------
     def _emit(self, *, status=None, file_percent=None, overall_percent=None, info=None):
@@ -68,6 +69,22 @@ class Download(object):
             self._outer = outer
             super().__init__(params or {})
 
+        def _with_indexed_info(self, info):
+            """Ensure playlist_index and n_entries are always present for the UI."""
+            if not self._outer:
+                return info
+            if info is None:
+                info = {}
+            info = dict(info)  # copy
+            # ensure index
+            if self._outer.playlist and not info.get("playlist_index"):
+                # if we've started processing, _current_index >= 1
+                info["playlist_index"] = max(1, self._outer._current_index)
+            # ensure total
+            if self._outer._total_items and not info.get("n_entries"):
+                info["n_entries"] = self._outer._total_items
+            return info
+
         # internal progress reporter
         def report_progress(self, s):
             try:
@@ -75,7 +92,7 @@ class Download(object):
             finally:
                 if not self._outer:
                     return
-                info = s.get("info_dict") or {}
+                info = self._with_indexed_info(s.get("info_dict"))
                 downloaded = s.get("downloaded_bytes") or 0
                 total = s.get("total_bytes") or s.get("total_bytes_estimate") or 0
                 file_p = int(downloaded * 100 / total) if total else None
@@ -84,7 +101,11 @@ class Download(object):
         # starting per-file
         def process_info(self, info_dict):
             if self._outer:
-                self._outer._emit(status="starting", file_percent=0, info=info_dict)
+                # advance our per-item counter for playlists
+                if self._outer.playlist:
+                    self._outer._current_index += 1
+                info_for_ui = self._with_indexed_info(info_dict)
+                self._outer._emit(status="starting", file_percent=0, info=info_for_ui)
             return super().process_info(info_dict)
 
         def report_destination(self, filename):
@@ -92,15 +113,19 @@ class Download(object):
             if self._outer:
                 base = os.path.basename(filename)
                 title = os.path.splitext(base)[0]
-                self._outer._emit(status="destination", file_percent=0, info={"title": title})
+                info = {"title": title}
+                info = self._with_indexed_info(info)
+                self._outer._emit(status="destination", file_percent=0, info=info)
 
         def _report_download_finished(self, filename):
             super()._report_download_finished(filename)
             if self._outer:
                 base = os.path.basename(filename)
                 title = os.path.splitext(base)[0]
-                self._outer._emit(status="finished", file_percent=100, info={"title": title})
-
+                info = {"title": title}
+                info = self._with_indexed_info(info)
+                self._outer._emit(status="finished", file_percent=100, info=info)
+                              
     # logger fallback (parses printed progress if hooks fail)
     class _Logger:
         _pct = re.compile(r'\b(\d{1,3}(?:\.\d)?)%')
@@ -120,14 +145,13 @@ class Download(object):
                 if "." in t:
                     t = t.rsplit(".", 1)[0]
                 self.last_title = t
-                self.o._emit(status="downloading", file_percent=1, info={"title": t})
-                return
-
-            m = self._pct.search(msg)
-            if m:
-                pct = int(float(m.group(1)))
-                info = {"title": self.last_title or ""}
-                self.o._emit(status="downloading", file_percent=pct, info=info)
+                info = {"title": t}
+                # inject index/total for the UI
+                if self.o.playlist:
+                    info["playlist_index"] = max(1, self.o._current_index or 1)
+                if self.o._total_items:
+                    info["n_entries"] = self.o._total_items
+                self.o._emit(status="downloading", file_percent=1, info=info)
                 return
 
             if "Merging formats into" in msg or "ExtractAudio" in msg:
@@ -143,6 +167,12 @@ class Download(object):
 
     def _yt_progress_hook(self, d):
         info = d.get("info_dict") or {}
+        
+        if self.playlist and not info.get("playlist_index"):
+            info["playlist_index"] = max(1, self._current_index)
+        if self._total_items and not info.get("n_entries"):
+            info["n_entries"] = self._total_items
+            
         status = d.get("status")
         if status == "downloading":
             self._emit(status="downloading", file_percent=self._percent_from_bytes(d), info=info)
@@ -151,6 +181,10 @@ class Download(object):
 
     def _yt_postprocessor_hook(self, d):
         info = d.get("info_dict") or {}
+        if self.playlist and not info.get("playlist_index"):
+            info["playlist_index"] = max(1, self._current_index)
+        if self._total_items and not info.get("n_entries"):
+            info["n_entries"] = self._total_items
         self._emit(status="postprocess", file_percent=100, info=info)
 
     # ---------- options ----------
@@ -197,6 +231,7 @@ class Download(object):
     # ---------- public API ----------
     def mp3_download(self):
         self.download_type = False
+        self.current_index = 0
         opts = dict(self.common_opts)
         self._prefetch_total_items(opts)
         opts["postprocessors"] = [{
@@ -210,6 +245,7 @@ class Download(object):
 
     def mp4_download(self):
         self.download_type = True
+        self.current_index = 0
         opts = dict(self.common_opts)
         self._prefetch_total_items(opts)
         opts["merge_output_format"] = "mp4"

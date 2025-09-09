@@ -275,24 +275,28 @@ class MainWindow(QtWidgets.QMainWindow):
     # ---------- Thread body ----------
     def download_thread(self, url, save_path, quality, playlist, video_format):
         try:
-            # Early metadata -> show title quickly
+            # Early metadata -> show title + idx/total quickly (works for playlists)
             try:
                 import yt_dlp as ydl
                 probe = ydl.YoutubeDL({
                     "quiet": True,
                     "noplaylist": not playlist,
-                    "extract_flat": "discard_in_playlist",
-                    "skip_download": True
+                    # flat extract is reliable for counting entries/titles fast
+                    "extract_flat": True,
+                    "skip_download": True,
                 }).extract_info(url, download=False)
+
                 title, idx, total = None, None, None
-                if probe.get("entries"):
+                if playlist and probe.get("entries"):
                     entries = [e for e in (probe.get("entries") or []) if e]
+                    total = len(entries)
                     if entries:
                         first = entries[0]
                         title = first.get("title") or first.get("fulltitle")
-                        idx, total = 1, len(entries)
+                        idx = 1
                 else:
                     title = probe.get("title") or probe.get("fulltitle")
+
                 if title:
                     self.sig_title.emit(title, idx, total)
             except Exception as e:
@@ -313,6 +317,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.sig_finish.emit(False, str(e))
         finally:
             QtCore.QTimer.singleShot(0, QtWidgets.QApplication.restoreOverrideCursor)
+
 
     # ---------- Progress + finish (GUI thread) ----------
     @QtCore.pyqtSlot(dict)
