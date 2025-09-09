@@ -87,7 +87,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 w.setProperty("theme", start_theme)
         self._apply_placeholder_palette(start_theme)
         self._repolish_theme_all()
-        print(f"[APP] Start theme: {start_theme}", flush=True)
 
         # Downloads folder
         downloads = QStandardPaths.writableLocation(QStandardPaths.DownloadLocation) \
